@@ -1,0 +1,13 @@
+{
+  "_comment": "spec 2.4 — 行业噪声词 + 中文停用词。短词(<=2 字符)在 preprocessor 中由长度规则统一过滤,这里只列实词。",
+  "industry_noise": [
+    "sfx", "audio", "sound", "sounds", "sample", "samples", "pack",
+    "library", "lib", "collection", "vol", "volume", "fx", "designed",
+    "compact", "stereo", "mono", "wav", "mp3", "flac", "aiff", "aif",
+    "ogg", "m4a", "24bit", "48k", "96k", "44k", "16bit", "192k",
+    "kit", "kits", "bundle", "edition", "series", "tools", "toolkit",
+    "essentials", "elements", "loop", "loops", "oneshot", "oneshots",
+    "音效", "采样", "立体声", "单声道", "音频", "声效", "素材",
+    "音色", "音色库", "声音", "包"
+  ]
+}

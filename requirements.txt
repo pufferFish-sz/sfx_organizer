@@ -1,0 +1,19 @@
+# Core
+# (csv/pathlib/logging/tkinter/zipfile 均为标准库,不需要安装)
+
+# 音频 metadata 读取
+mutagen>=1.47
+
+# 压缩包(zip 是标准库,其余可选)
+py7zr>=0.21
+rarfile>=4.1
+
+# 表格读取(可选 — ucs_loader 默认用 stdlib csv,
+# 用户若想用 pandas 解析自定义 UCS 表也可)
+# pandas>=2.0
+
+# 中文分词(可选 — 未安装时降级为词典最长匹配)
+jieba>=0.42
+
+# 打包 .exe(只开发时需要,详见 README 「打包成 .exe」)
+# pyinstaller>=6.0

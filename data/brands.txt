@@ -1,0 +1,38 @@
+# 品牌名 / 厂商名 / 短代号过滤表 — 一行一个,大小写不敏感
+# 用户应根据自己常用厂商扩展
+# 以 # 开头的行被忽略
+
+# === 用户真实样本中出现的厂商 ===
+avosound
+beatsburg
+async
+future
+samples
+
+# === 常见厂商 ===
+boom
+soundly
+soundsnap
+splice
+zapsplat
+freesound
+proSoundEffects
+hzandbits
+articulated
+articulatedsounds
+prosoundeffects
+sounddogs
+sonniss
+ghostsamples
+silverplatter
+hissandaroar
+asoundeffect
+
+# === 厂商前缀代号(无意义) ===
+cs
+ss
+ps
+zsnd
+hzb
+asfx
+boom

@@ -1,0 +1,14 @@
+{
+  "_comment_format": "可选 — 给指定 (Category/SubCategory) 追加额外同义词。键格式: 'CATEGORY/SUBCATEGORY' 必须存在于 UCS 表;值为字符串列表(将被小写化)。用户可在此扩展,无需修改 UCS 表本身。",
+
+  "SCIFI/COMPUTER": [
+    "glitch", "malfunction", "error", "crash", "corrupt", "boot",
+    "loading", "process", "data", "system", "reboot", "kernel",
+    "信号", "数据"
+  ],
+
+  "MACHINES/APPLIANCE": [
+    "hairdryer", "blender", "toaster", "microwave",
+    "blowdry", "blowdryer"
+  ]
+}

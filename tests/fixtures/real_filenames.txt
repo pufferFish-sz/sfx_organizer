@@ -1,0 +1,38 @@
+# 真实文件名样本(用于单元测试)
+# 格式: <filename> | <expected_category> | <expected_subcategory>
+# 注: SubCategory 写 "_ROOT" 表示预期放在大类根目录(置信度不足以判定子类)
+# 注: SubCategory 写 "ANY" 表示能命中具体子类即可(具体哪个不强求)
+# 注: 写 misc | misc 表示预期归入 _misc/
+
+# === 用户提供的真实样本 ===
+04 - Async Audio Sci-Fi Blaster.zip | SCIFI | WEAPON
+03 - Avosound Desolation Soundscapes Compact【荒凉山区野外环境氛围音效-立体声】.zip | AMBIENCE | _ROOT
+01 - Beatsburg Machinery 日常用品吹风机等音效.zip | MACHINES | _ROOT
+05 - Beatsburg Kitchen.zip | FOOD & DRINK | _ROOT
+40 - Future Samples Computer SFX [WAV] 计算机科技故障音效FX采样.zip | SCIFI | COMPUTER
+CS_Designed Cartoon SFX_01.wav | CARTOON | _ROOT
+
+# === 边界情况(CatID 直接命中,必进子类)===
+AMBLake_morning_birds.wav | AMBIENCE | LAKE
+GUNAntq_musket_fire.wav | GUNS | ANTIQUE
+WATRDrip_faucet_001.wav | WATER | DROPS
+
+# === 纯中文文件名 ===
+雨声_暴风雨_森林.wav | RAIN | ANY
+脚步声_木地板.wav | FOOTSTEPS | ANY
+
+# === 短缩写大类(UI 是 USER INTERFACE 的 CatShort,2 字符不能被短词过滤丢掉)===
+UI Deny.wav | USER INTERFACE | _ROOT
+UI_Hover.wav | USER INTERFACE | _ROOT
+UI Click 01.wav | USER INTERFACE | CLICK
+
+# === 跨大类共享的「功能性子类」 (IMPACT/WHOOSH 等出现在 N 个大类里) ===
+# 排序次级 key 用 cat_agg 才不会按字母序错归到 BULLETS/IMPACT 这种不相关大类。
+Async_Impact.wav | DESIGNED | IMPACT
+Async_Wrench Impact.wav | DESIGNED | IMPACT
+Whoosh 2.wav | SWOOSHES | WHOOSH
+Impact.wav | DESIGNED | IMPACT
+
+# === 真的无法判断的 ===
+untitled_001.wav | misc | misc
+track01.wav | misc | misc
