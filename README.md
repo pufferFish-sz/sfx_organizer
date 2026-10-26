@@ -1,170 +1,172 @@
 # sfx_organizer
 
-Python GUI 工具,按 **UCS v8.2.1**(Universal Category System,753 条目 / 82 大类)自动整理音效素材库。
-支持中文 / 英文混合文件名,输出统一英文 UCS 分类目录。
+**English** | [简体中文](README.zh-CN.md)
 
-详细需求见 [`sfx_organizer_spec.md`](../sfx_organizer_spec.md)。
+A Python GUI tool that automatically organizes a sound effects library according to **UCS v8.2.1** (Universal Category System: 753 entries across 82 categories).
+It handles file names in Chinese, English, or a mix of both, and outputs a consistent folder structure using the English UCS category names.
+
+For the full requirements, see [`sfx_organizer_spec.md`](../sfx_organizer_spec.md).
 
 ---
 
-## 安装
+## Installation
 
-需要 Python ≥ 3.10。
+Requires Python 3.10 or later.
 
 ```bash
 cd sfx_organizer
 pip install -r requirements.txt
 ```
 
-可选依赖会在缺失时降级而不报错:
+Optional dependencies degrade gracefully when missing instead of raising errors:
 
-| 包 | 用途 | 缺失时的行为 |
+| Package | Purpose | Behavior when missing |
 |----|------|--------------|
-| `jieba` | 中文分词 | 降级为「词典最长匹配」算法 |
-| `mutagen` | 读音频 metadata(BWF/ID3/Vorbis) | 跳过 P3 兜底,纯文件名分类 |
-| `py7zr` | 解压 `.7z` | `.7z` 文件被记为「不支持」 |
-| `rarfile` | 解压 `.rar` | `.rar` 文件被记为「不支持」 |
-| `pyzipper` | 加密 zip 写入(仅测试用) | 加密 zip 测试被跳过 |
+| `jieba` | Chinese word segmentation | Falls back to longest-match dictionary lookup |
+| `mutagen` | Reads audio metadata (BWF/ID3/Vorbis) | Skips the P3 metadata fallback and classifies by file name only |
+| `py7zr` | Extracts `.7z` archives | `.7z` files are logged as "unsupported" |
+| `rarfile` | Extracts `.rar` archives | `.rar` files are logged as "unsupported" |
+| `pyzipper` | Writes encrypted zips (tests only) | Encrypted-zip tests are skipped |
 
-## 启动
+## Running it
 
 ```bash
 python main.py
 ```
 
-## 三种工作模式
+## Three working modes
 
-GUI 上以单选钮提供:
+Selectable with radio buttons in the GUI:
 
-- **直接整理(不解压)** — 音频和压缩包都按文件名分类、移动/复制到目标
-- **先解压后整理** — 先把所有压缩包解到临时目录,再分类每个音频,完成后清理临时目录
-- **增量整理到现有库** — 源 + 已存在的目标库根;复用既有目录结构,自动 ignore 目标防递归扫描
+- **Organize directly (no extraction):** audio files and archives are classified by file name and moved or copied to the destination
+- **Extract, then organize:** all archives are first extracted to a temporary folder, each audio file is classified, and the temporary folder is cleaned up afterward
+- **Add to an existing library:** takes a source plus the root of an existing library, reuses its folder structure, and automatically ignores the destination so it isn't scanned recursively
 
-## 分类策略(spec 2.5)
+## Classification strategy (spec 2.5)
 
-四级优先级,**命中即停止**:
+Four priority levels. **Classification stops at the first match:**
 
-1. **CatID 前缀直接命中** —— 文件名以 UCS 标准 CatID(如 `AMBLake_xxx`, `GUNAntq_001`)开头,100% 进对应子类
-2. **加权关键词匹配** —— 文件名经九步预处理(剥序号 / 拆中英 / 中文分词 / 中英映射 / 去停用词)后得到 token 集,对每个 UCS 条目打分:
-   - 大类名 exact 命中:`4.0 × len`
-   - 子类名 exact 命中:`3.0 × len`
-   - 子类名子串命中(len ≥ 5):`2.0 × len`
-   - CatShort 命中:`2.0 × len`
-   - 同义词命中:`1.0 × len`
+1. **Direct CatID prefix match:** if a file name starts with a standard UCS CatID (for example `AMBLake_xxx` or `GUNAntq_001`), it goes straight into that subcategory
+2. **Weighted keyword matching:** the file name goes through nine preprocessing steps (strip numbering, split Chinese and English, segment Chinese words, map Chinese to English, remove stopwords) to produce a token set, which is scored against every UCS entry:
+   - Exact category name match: `4.0 × len`
+   - Exact subcategory name match: `3.0 × len`
+   - Subcategory name substring match (len ≥ 5): `2.0 × len`
+   - CatShort match: `2.0 × len`
+   - Synonym match: `1.0 × len`
 
-   每个 (token, entry) 取 *最高* 权命中。然后:
-   - 若**最佳条目所属大类** ✓ 等于**大类聚合得分最高的大类**,且条目分 ≥ 4.0,且同大类内对第二名领先 ≥ 1.5 → **归子类**
-   - 否则若大类聚合分 ≥ 4.0 且对第二大类领先 ≥ 10.0 → **归大类根**
-   - 否则 → `_misc/`
+   Each (token, entry) pair keeps only its *highest*-weighted match. Then:
+   - If the **best entry's category** ✓ is also the **category with the highest total score**, the entry scores ≥ 4.0, and it leads the runner-up in the same category by ≥ 1.5 → **file goes into that subcategory**
+   - Otherwise, if the category's total score is ≥ 4.0 and it leads the second-best category by ≥ 10.0 → **file goes into the category root**
+   - Otherwise → `_misc/`
 
-3. **音频 metadata 兜底** —— 当上述均失败且文件是音频时,读取 BWF/ID3/Vorbis 的 Title/Description/Comment/Subject/Keywords,把文本当作新文件名再走第 2 步
-4. **全部失败** → `_misc/`
+3. **Audio metadata fallback:** if everything above fails and the file is audio, the tool reads the BWF/ID3/Vorbis Title, Description, Comment, Subject, and Keywords fields, treats that text as a new file name, and runs step 2 again
+4. **Everything fails** → `_misc/`
 
-此外内置一个 garbage-filename 预过滤:`untitled_001.wav` / `track01.wav` 这类默认命名直送 `_misc/`,避免被某个偶然的 subname 抢走。
+There's also a built-in garbage-filename filter: default names like `untitled_001.wav` or `track01.wav` go straight to `_misc/` so they don't get pulled into a category by a chance subcategory match.
 
-## 数据文件
+## Data files
 
-均在 `data/` 下,均可手工编辑:
+All in `data/`, and all editable by hand:
 
-| 文件 | 内容 |
+| File | Contents |
 |------|------|
-| `ucs_v8_2_1.csv` | UCS 表(753 条) — 项目自带,可换成自己版本 |
-| `zh_en_dict.json` | 中英文同义词词典(282 条,覆盖 82 大类),`_` 开头的 key 是注释 |
-| `stopwords.json` | 行业噪声词(SFX/Sample/Pack/音效/采样/...) |
-| `brands.txt` | 厂商品牌名(一行一个,`#` 开头是注释)— 用户应按自己常用厂商扩展 |
-| `extra_synonyms.json` | UCS 同义词补充(不改原表),键格式 `"CATEGORY/SUBCATEGORY"` |
+| `ucs_v8_2_1.csv` | UCS table (753 entries). Bundled with the project; swap in your own version if needed |
+| `zh_en_dict.json` | Chinese–English synonym dictionary (282 entries covering all 82 categories). Keys starting with `_` are comments |
+| `stopwords.json` | Industry noise words (SFX, Sample, Pack, 音效, 采样, ...) |
+| `brands.txt` | Sound library vendor names, one per line; lines starting with `#` are comments. Add the vendors you use most |
+| `extra_synonyms.json` | Extra UCS synonyms (without modifying the original table), keyed as `"CATEGORY/SUBCATEGORY"` |
 
-## 测试
+## Tests
 
 ```bash
 python -m pytest tests/
 ```
 
-112 个用例(其中 4 个需可选依赖)。涵盖:
-- `ucs_loader` / `tokenizer` / `preprocessor` / `classifier`(覆盖 spec 2.6 真实样本)
+112 test cases (4 require optional dependencies), covering:
+- `ucs_loader` / `tokenizer` / `preprocessor` / `classifier` (including the real-world samples from spec 2.6)
 - `scanner` / `organizer` / `disk_checker` / `extractor`
 
-测试 fixture `tests/fixtures/real_filenames.txt` 是 spec 提供的真实样本,**任何分类逻辑改动都必须保证这 13 条仍通过**。
+The fixture `tests/fixtures/real_filenames.txt` contains the real-world samples from the spec. **Any change to the classification logic must keep all 13 of them passing.**
 
-## 打包成 .exe(PyInstaller)
+## Building a .exe (PyInstaller)
 
 ```bash
 pip install pyinstaller
-python build.py             # 默认 onedir,产物在 dist/sfx_organizer/
-python build.py --onefile   # 单文件 .exe(分发一个文件,启动慢、每次解压到 TEMP)
-python build.py --skip-tests --clean   # 透传选项
+python build.py             # onedir by default; output goes to dist/sfx_organizer/
+python build.py --onefile   # single .exe (one file to distribute, but slower startup since it unpacks to TEMP each run)
+python build.py --skip-tests --clean   # pass-through options
 ```
 
-打包细节都在 [`sfx_organizer.spec`](sfx_organizer.spec) 里,可直接 `pyinstaller sfx_organizer.spec`。spec 会:
+All packaging details live in [`sfx_organizer.spec`](sfx_organizer.spec), so you can also run `pyinstaller sfx_organizer.spec` directly. The spec:
 
-- 把 `data/` 下五个资源文件(UCS / 词典 / 停用词 / 品牌 / extra_synonyms)打进 bundle
-- 自动检测 jieba(已装则带上它的 `dict.txt`,未装则跳过)
-- 排除 matplotlib / numpy / pandas / Qt 这些用不到的大块头
-- `console=False` 双击运行不弹黑窗
+- Bundles the five resource files in `data/` (UCS table, dictionary, stopwords, brands, extra_synonyms)
+- Detects jieba automatically (includes its `dict.txt` if installed, skips it otherwise)
+- Excludes large unused packages like matplotlib, numpy, pandas, and Qt
+- Sets `console=False` so double-clicking doesn't open a console window
 
-打出来的 .exe 里 `data/*.json/.csv/.txt` 是只读的(在临时解压目录)。**用户要扩展词典 / 加品牌名 / 调 extra_synonyms,可通过 GUI 的「选择...」按钮指定一份外部副本**(复制 bundle 里的同名文件到任意可写目录即可)。
+In the built .exe, the `data/*.json/.csv/.txt` files are read-only (they live in a temporary unpack folder). **To extend the dictionary, add vendor names, or adjust extra_synonyms, use the "Choose..." button in the GUI to point to an external copy** (just copy the bundled file of the same name into any writable folder).
 
-资源路径解析见 [`utils/paths.py`](utils/paths.py) —— `sys._MEIPASS` 优先,dev 模式回落到 `__file__.parent.parent`,代码层面无需感知是否 frozen。
+Resource path resolution is handled in [`utils/paths.py`](utils/paths.py): it checks `sys._MEIPASS` first and falls back to `__file__.parent.parent` in dev mode, so the rest of the code doesn't need to know whether it's running frozen.
 
-## 项目结构
+## Project structure
 
 ```
 sfx_organizer/
 ├── main.py
 ├── data/
-│   ├── ucs_v8_2_1.csv          # UCS 表(项目附带)
-│   ├── zh_en_dict.json         # 中英文映射词典
-│   ├── stopwords.json          # 行业噪声词
-│   ├── brands.txt              # 品牌名(可编辑)
-│   └── extra_synonyms.json     # UCS 同义词补充
+│   ├── ucs_v8_2_1.csv          # UCS table (bundled)
+│   ├── zh_en_dict.json         # Chinese–English mapping dictionary
+│   ├── stopwords.json          # industry noise words
+│   ├── brands.txt              # vendor names (editable)
+│   └── extra_synonyms.json     # extra UCS synonyms
 ├── core/
-│   ├── ucs_loader.py           # CSV 加载 + 索引
-│   ├── preprocessor.py         # ★ 文件名九步清洗
-│   ├── tokenizer.py            # 切分 + 中文分词 + 中英映射
-│   ├── classifier.py           # ★ 四级优先级 + 加权打分
-│   ├── extractor.py            # 压缩包处理(zip/rar/7z + 密码)
-│   ├── organizer.py            # 文件移动 + 目录创建 + 冲突
-│   ├── scanner.py              # 递归扫描
-│   └── disk_checker.py         # 磁盘空间预估
+│   ├── ucs_loader.py           # CSV loading + indexing
+│   ├── preprocessor.py         # ★ nine-step file name cleanup
+│   ├── tokenizer.py            # splitting + Chinese segmentation + zh–en mapping
+│   ├── classifier.py           # ★ four-level priority + weighted scoring
+│   ├── extractor.py            # archive handling (zip/rar/7z + passwords)
+│   ├── organizer.py            # file moves + folder creation + conflicts
+│   ├── scanner.py              # recursive scanning
+│   └── disk_checker.py         # disk space estimate
 ├── gui/
-│   ├── main_window.py          # 主窗口(spec 第六节布局)
-│   ├── worker.py               # 后台 worker 线程 + 事件
-│   ├── password_dialog.py      # 加密包密码弹窗 + 会话缓存
-│   └── preview_dialog.py       # 分类预览对照表
+│   ├── main_window.py          # main window (layout from spec section 6)
+│   ├── worker.py               # background worker thread + events
+│   ├── password_dialog.py      # password prompt for encrypted archives + session cache
+│   └── preview_dialog.py       # classification preview table
 ├── utils/
-│   ├── logger.py               # 文件 + GUI 双通道日志
-│   ├── metadata_reader.py      # mutagen 包装
-│   └── paths.py                # 资源路径(dev / PyInstaller 兼容)
-├── sfx_organizer.spec          # PyInstaller 规格(见上「打包成 .exe」)
-├── build.py                    # 一键打包脚本
+│   ├── logger.py               # logging to both file and GUI
+│   ├── metadata_reader.py      # mutagen wrapper
+│   └── paths.py                # resource paths (dev / PyInstaller compatible)
+├── sfx_organizer.spec          # PyInstaller spec (see "Building a .exe" above)
+├── build.py                    # one-step build script
 └── tests/
-    ├── test_*.py               # 112 用例
+    ├── test_*.py               # 112 test cases
     └── fixtures/
         └── real_filenames.txt
 ```
 
-## 常见问题
+## FAQ
 
-**Q: 分类不准 / 一直进 `_misc`?**
-- 检查 `data/brands.txt` 是否过滤了你不想过滤的词(厂商名误杀)
-- 检查 `data/zh_en_dict.json` 是否覆盖了你常用的中文词;添加映射可立即生效
-- 对实在难分的子类,可在 `data/extra_synonyms.json` 添加同义词补充
+**Q: Files are misclassified, or everything ends up in `_misc`?**
+- Check whether `data/brands.txt` is filtering out words you don't want filtered (a vendor name accidentally removing a real keyword)
+- Check whether `data/zh_en_dict.json` covers the Chinese terms you use most; new mappings take effect immediately
+- For subcategories that are genuinely hard to match, add synonyms in `data/extra_synonyms.json`
 
-**Q: 整理速度?**
-- 单线程 1000 文件约几秒(评分是纯内存运算,瓶颈是 IO 复制)
-- 多线程化在 spec V2 中作为增强暂未实现
+**Q: How fast is it?**
+- Around a few seconds for 1,000 files on a single thread (scoring runs entirely in memory; file copying is the bottleneck)
+- Multithreading is planned as a V2 enhancement and isn't implemented yet
 
-**Q: 加密 zip 怎么处理?**
-- GUI 弹密码框,3 次重试,勾「记住该密码」可在本次会话内被后续加密包自动复用
-- 用户点跳过 → 该文件记入日志后继续
+**Q: How are encrypted zips handled?**
+- The GUI shows a password prompt with 3 attempts. Check "Remember this password" to reuse it automatically for later encrypted archives in the same session
+- If you click Skip, the file is logged and the run continues
 
-**Q: Windows 中文路径报错?**
-- 项目全程用 `pathlib.Path` + UTF-8,经过测试。若仍报错请检查源文件夹是否在被其他进程占用
+**Q: Errors with Chinese paths on Windows?**
+- The project uses `pathlib.Path` and UTF-8 throughout, and this has been tested. If you still see errors, check whether another process is using the source folder
 
-## 限制(将在 V2 处理)
+## Limitations (planned for V2)
 
-- AI 语义分类(本地模型 / API)
-- 音频指纹去重
-- 自动重命名为 UCS 标准命名
-- SQLite 索引便于检索
-- 多线程化处理(当前 worker 是单线程串行)
+- AI-based semantic classification (local model or API)
+- Audio fingerprint deduplication
+- Automatic renaming to UCS naming conventions
+- SQLite index for searching
+- Multithreaded processing (the worker currently runs single-threaded)
